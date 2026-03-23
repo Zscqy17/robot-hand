@@ -100,4 +100,23 @@ The Inspire Hand SDK supports multiple control modes, defined as follows:
     python inspire_hand_sdk/example/Vision_driver.py
     ```
 
+## SenseGlove 集成模块
+
+仓库中已经加入右手 SenseGlove 集成模块，目录位于 `senseglove_integration/`。
+
+- `senseglove_integration/haptic_bridge.py`：机械手触觉到 SenseGlove 触觉的集成桥接 GUI
+- `senseglove_integration/test_robot_hand.py`：机械手独立测试 GUI
+- `senseglove_integration/test_senseglove.py`：SenseGlove 独立测试 GUI
+- `senseglove_bridge/build.bat`：构建 Python 包装器依赖的本地 C++ bridge
+
+快速开始：
+
+```bash
+cd senseglove_bridge
+build.bat
+
+cd ..
+senseglove_integration/start_haptic_bridge_sim.bat
+```
+
 ---

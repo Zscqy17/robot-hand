@@ -103,4 +103,23 @@ Below are instructions for using common examples:
     python inspire_hand_sdk/example/Vision_driver.py
     ```
 
+## SenseGlove Integration
+
+The repository also contains a right-hand SenseGlove integration module under `senseglove_integration/`.
+
+- `senseglove_integration/haptic_bridge.py`: integrated tactile-to-haptics bridge GUI
+- `senseglove_integration/test_robot_hand.py`: standalone robot-hand GUI
+- `senseglove_integration/test_senseglove.py`: standalone SenseGlove GUI
+- `senseglove_bridge/build.bat`: builds the local C++ bridge used by the Python wrapper
+
+Quick start:
+
+```bash
+cd senseglove_bridge
+build.bat
+
+cd ..
+senseglove_integration/start_haptic_bridge_sim.bat
+```
+
 ---

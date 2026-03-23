@@ -42,3 +42,12 @@ unitree_sdk2_python_clone/
 # Large archives
 venv_x86.tar.xz
 
+# SenseGlove integration local dependencies and build outputs
+SenseGlove-API/
+senseglove_bridge/bin/
+senseglove_bridge/*.obj
+senseglove_integration/__pycache__/
+senseglove_integration/*.pyc
+*.obj
+*.dll
+
