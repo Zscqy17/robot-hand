@@ -9,7 +9,10 @@ echo ========================================
 echo.
 
 cd /d "%~dp0"
-python inspire_hand_sdk\example\Vision_driver_485_r.py
+
+REM 使用 conda base 环境的 Python（SDK 安装在此）
+set PYTHONPATH=%~dp0inspire_hand_sdk;%PYTHONPATH%
+D:\miniconda3\python.exe inspire_hand_sdk\example\Vision_driver_485_r.py
 
 if %errorlevel% neq 0 (
     echo.
