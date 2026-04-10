@@ -1,9 +1,5 @@
 
 from .inspire_hand_defaut import *
-from .inspire_dds import inspire_hand_touch,inspire_hand_ctrl,inspire_hand_state
-from unitree_sdk2py.core.channel import ChannelPublisher, ChannelFactoryInitialize
-from unitree_sdk2py.core.channel import ChannelSubscriber, ChannelFactoryInitialize
-from unitree_sdk2py.utils.thread import Thread
 
 from pymodbus.client import ModbusTcpClient
 from pymodbus.client import ModbusSerialClient
@@ -13,26 +9,21 @@ import struct
 import sys
 import time
 class ModbusDataHandler:
-    def __init__(self, data=data_sheet, history_length=100, network=None, ip=None, port=6000, device_id=1, LR='r', use_serial=False, serial_port='/dev/ttyUSB0', baudrate=115200, states_structure=None, initDDS=True, max_retries=5, retry_delay=2):
-        """_summary_
-        Calling self.read() in a loop reads and returns the data, and publishes the DDS message at the same time        
+    def __init__(self, data=data_sheet, history_length=100, ip=None, port=6000, device_id=1, LR='r', use_serial=False, serial_port='/dev/ttyUSB0', baudrate=115200, states_structure=None, max_retries=5, retry_delay=2):
+        """RS485/TCP Modbus 灵巧手通信
         Args:
             data (dict, optional): Tactile sensor register definition. Defaults to data_sheet.
             history_length (int, optional): Hand state history_length. Defaults to 100.
-            network (str, optional): Name of the DDS NIC. Defaults to None.
-            ip (str, optional): ModbusTcp IP. Defaults to None will use 192.1686.11.210.
+            ip (str, optional): ModbusTcp IP. Defaults to None will use 192.168.11.210.
             port (int, optional): ModbusTcp IP port. Defaults to 6000.
             device_id (int, optional): Hand ID. Defaults to 1.
-            LR (str, optional): Topic suffix l or r. Defaults to 'r'.
+            LR (str, optional): Left or right hand. Defaults to 'r'.
             use_serial (bool, optional): Whether to use serial mode. Defaults to False.
             serial_port (str, optional): Serial port name. Defaults to '/dev/ttyUSB0'.
             baudrate (int, optional): Serial baud rate. Defaults to 115200.
-            states_structure (list, optional): List of tuples for state registers. Each tuple should contain (attribute_name, start_address, length, data_type). If None ,will publish All Data 
-            initDDS (bool, optional): Run ChannelFactoryInitialize(0),only need run once in all program
-            max_retries (int, optional): Number of retries for connecting to Modbus server. Defaults to 3.
+            states_structure (list, optional): List of tuples for state registers.
+            max_retries (int, optional): Number of retries for connecting. Defaults to 5.
             retry_delay (int, optional): Delay between retries in seconds. Defaults to 2.
-        Raises:
-            ConnectionError: raise when connection fails after max_retries
         """        
         self.data = data
         self.history_length = history_length
@@ -52,12 +43,12 @@ class ModbusDataHandler:
             ('angle_act', 1546, 6, 'short'),
             ('force_act', 1582, 6, 'short'),
             ('current', 1594, 6, 'short'),
-            ('err', 1606, 3, 'byte'),
-            ('status', 1612, 3, 'byte'),
-            ('temperature', 1618, 3, 'byte')
+            ('err', 1606, 6, 'byte'),
+            ('status', 1612, 6, 'byte'),
+            ('temperature', 1618, 6, 'byte')
         ]
         if self.use_serial:
-            self.client = ModbusSerialClient(method='rtu', port=serial_port, baudrate=baudrate, timeout=1)
+            self.client = ModbusSerialClient(port=serial_port, baudrate=baudrate, timeout=1)
             print("will use serial")
         else:
             if ip==None:
@@ -70,30 +61,7 @@ class ModbusDataHandler:
         # 尝试连接 Modbus 服务器，带重试机制
         self.connect_to_modbus(max_retries, retry_delay)
         self.device_id = device_id
-
-                
-       # 初始化 ChannelFactory
-        try:
-            if initDDS:
-                if network is None:
-                    ChannelFactoryInitialize(0, network)
-                else:
-                    ChannelFactoryInitialize(0)
-        except Exception as e:
-            print(f"Error during ChannelFactory initialization: {e}")
-            # 这里可以添加日志记录或其他恢复机制
-            return
-        
-        self.client.write_register(1004,1,self.device_id) #reser error
-        if not self.use_serial:
-            self.pub = ChannelPublisher("rt/inspire_hand/touch/"+LR, inspire_hand_touch)
-            self.pub.Init()
-
-        self.state_pub = ChannelPublisher("rt/inspire_hand/state/"+LR, inspire_hand_state)
-        self.state_pub.Init()
-            
-        self.sub = ChannelSubscriber("rt/inspire_hand/ctrl/"+LR, inspire_hand_ctrl)
-        self.sub.Init(self.write_registers_callback, 10)       
+        self.client.write_register(1004, 1, device_id=self.device_id)  # reset error       
             
     def connect_to_modbus(self, max_retries, retry_delay):
         """连接到 Modbus 服务器，并在失败时重试"""
@@ -113,58 +81,53 @@ class ModbusDataHandler:
                 else:
                     print("Max retries reached. Could not connect.")
                     raise   
-    def write_registers_callback(self,msg:inspire_hand_ctrl):
+    def set_angle(self, angles):
+        """设置各自由度角度, angles: list of 6 int (0-1000, -1=不动)"""
         with modbus_lock:
-            if msg.mode & 0b0001:  # 模式 1 - 角度
-                self.client.write_registers(1486, msg.angle_set, self.device_id)
-                # print('angle_set')
-            if msg.mode & 0b0010:  # 模式 2 - 位置
-                self.client.write_registers(1474, msg.pos_set, self.device_id)
-                # print('pos_set')
+            self.client.write_registers(1486, angles, device_id=self.device_id)
 
-            if msg.mode & 0b0100:  # 模式 4 - 力控
-                self.client.write_registers(1498, msg.force_set, self.device_id)
-                # print('force_set')
+    def set_force(self, forces):
+        """设置各自由度力控阈值, forces: list of 6 int (0-3000)"""
+        with modbus_lock:
+            self.client.write_registers(1498, forces, device_id=self.device_id)
 
-            if msg.mode & 0b1000:  # 模式 8 - 速度
-                self.client.write_registers(1522, msg.speed_set, self.device_id)
-                
-    def read(self):
-        if not self.use_serial:
-            touch_msg = get_inspire_hand_touch()
-            matrixs = {}
+    def set_speed(self, speeds):
+        """设置各自由度速度, speeds: list of 6 int (0-1000)"""
+        with modbus_lock:
+            self.client.write_registers(1522, speeds, device_id=self.device_id)
+
+    def set_pos(self, positions):
+        """设置各自由度驱动器位置, positions: list of 6 int (0-2000)"""
+        with modbus_lock:
+            self.client.write_registers(1474, positions, device_id=self.device_id)
+
+    def read(self, read_touch=False):
+        matrixs = {}
+        if read_touch:
             for i, (name, addr, length, size, var) in enumerate(self.data):
-                value = self.read_and_parse_registers(addr, length // 2,'short')
+                value = self.read_and_parse_registers(addr, length // 2, 'short')
                 if value is not None:
-                    setattr(touch_msg, var, value)
                     matrix = np.array(value).reshape(size)
-                    matrixs[var]=matrix
-            self.pub.Write(touch_msg)
-        else:
-            matrixs = {}
-        # Read the states for POS_ACT, ANGLE_ACT, etc.
-        states_msg = get_inspire_hand_state()
+                    matrixs[var] = matrix
 
+        states = {}
         for attr_name, start_address, length, data_type in self.states_structure:
-            setattr(states_msg, attr_name, self.read_and_parse_registers(start_address, length, data_type))
-            
-        self.state_pub.Write(states_msg)
+            states[attr_name] = self.read_and_parse_registers(start_address, length, data_type)
 
-        return {'states':{
-            'POS_ACT': states_msg.pos_act,
-            'ANGLE_ACT': states_msg.angle_act,
-            'FORCE_ACT': states_msg.force_act,
-            'CURRENT': states_msg.current,
-            'ERROR': states_msg.err,
-            'STATUS': states_msg.status,
-            'TEMP': states_msg.temperature
-        },'touch':matrixs
-                }
+        STATE_KEY_MAP = {
+            'pos_act': 'POS_ACT', 'angle_act': 'ANGLE_ACT',
+            'force_act': 'FORCE_ACT', 'current': 'CURRENT',
+            'err': 'ERROR', 'status': 'STATUS', 'temperature': 'TEMP',
+        }
+        return {
+            'states': {STATE_KEY_MAP.get(k, k): v for k, v in states.items()},
+            'touch': matrixs,
+        }
 
     def read_and_parse_registers(self, start_address, num_registers, data_type='short'):
          with modbus_lock:
             # 读取寄存器
-            response = self.client.read_holding_registers(start_address, num_registers, self.device_id)
+            response = self.client.read_holding_registers(start_address, count=num_registers, device_id=self.device_id)
 
             if not response.isError():
                 if data_type == 'short':
@@ -174,13 +137,10 @@ class ModbusDataHandler:
                     angles = struct.unpack('>' + 'h' * num_registers, packed_data)
                     return angles
                 elif data_type == 'byte':
-                    # 将每个 16 位寄存器拆分为两个 8 位 (uint8) 数据
+                    # 每个 Modbus 寄存器存储一个 byte 值
                     byte_list = []
                     for reg in response.registers:
-                        high_byte = (reg >> 8) & 0xFF  # 高 8 位
-                        low_byte = reg & 0xFF          # 低 8 位
-                        byte_list.append(high_byte)
-                        byte_list.append(low_byte)
+                        byte_list.append(reg & 0xFF)
                     return byte_list
             else:
                 print("Error reading registers")

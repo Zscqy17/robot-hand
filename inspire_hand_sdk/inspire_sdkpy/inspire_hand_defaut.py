@@ -1,6 +1,6 @@
 
 
-from .inspire_dds import inspire_hand_touch,inspire_hand_ctrl,inspire_hand_state
+from types import SimpleNamespace
 import threading
 modbus_lock = threading.Lock()
 
@@ -66,44 +66,35 @@ def update_error_label(ERROR):
        
  
 def get_inspire_hand_touch():
-    return inspire_hand_touch(
-        fingerone_tip_touch=[0 for _ in range(9)],        # 小拇指指端触觉数据
-        fingerone_top_touch=[0 for _ in range(96)],       # 小拇指指尖触觉数据
-        fingerone_palm_touch=[0 for _ in range(80)],      # 小拇指指腹触觉数据
-        fingertwo_tip_touch=[0 for _ in range(9)],        # 无名指指端触觉数据
-        fingertwo_top_touch=[0 for _ in range(96)],       # 无名指指尖触觉数据
-        fingertwo_palm_touch=[0 for _ in range(80)],      # 无名指指腹触觉数据
-        fingerthree_tip_touch=[0 for _ in range(9)],      # 中指指端触觉数据
-        fingerthree_top_touch=[0 for _ in range(96)],     # 中指指尖触觉数据
-        fingerthree_palm_touch=[0 for _ in range(80)],    # 中指指腹触觉数据
-        fingerfour_tip_touch=[0 for _ in range(9)],       # 食指指端触觉数据
-        fingerfour_top_touch=[0 for _ in range(96)],      # 食指指尖触觉数据
-        fingerfour_palm_touch=[0 for _ in range(80)],     # 食指指腹触觉数据
-        fingerfive_tip_touch=[0 for _ in range(9)],       # 大拇指指端触觉数据
-        fingerfive_top_touch=[0 for _ in range(96)],      # 大拇指指尖触觉数据
-        fingerfive_middle_touch=[0 for _ in range(9)],    # 大拇指指中触觉数据
-        fingerfive_palm_touch=[0 for _ in range(96)],     # 大拇指指腹触觉数据
-        palm_touch=[0 for _ in range(112)]                # 掌心触觉数据
+    return SimpleNamespace(
+        fingerone_tip_touch=[0]*9,
+        fingerone_top_touch=[0]*96,
+        fingerone_palm_touch=[0]*80,
+        fingertwo_tip_touch=[0]*9,
+        fingertwo_top_touch=[0]*96,
+        fingertwo_palm_touch=[0]*80,
+        fingerthree_tip_touch=[0]*9,
+        fingerthree_top_touch=[0]*96,
+        fingerthree_palm_touch=[0]*80,
+        fingerfour_tip_touch=[0]*9,
+        fingerfour_top_touch=[0]*96,
+        fingerfour_palm_touch=[0]*80,
+        fingerfive_tip_touch=[0]*9,
+        fingerfive_top_touch=[0]*96,
+        fingerfive_middle_touch=[0]*9,
+        fingerfive_palm_touch=[0]*96,
+        palm_touch=[0]*112,
     )
     
 def get_inspire_hand_state():
-    return inspire_hand_state(
-        pos_act=[0 for _ in range(6)],        # 小拇指指端触觉数据
-        angle_act=[0 for _ in range(6)],       # 小拇指指尖触觉数据
-        force_act=[0 for _ in range(6)],      # 小拇指指腹触觉数据
-        current=[0 for _ in range(6)],        # 无名指指端触觉数据
-        err=[0 for _ in range(6)],        # 无名指指端触觉数据
-        status=[0 for _ in range(6)],        # 无名指指端触觉数据
-        temperature=[0 for _ in range(6)],        # 无名指指端触觉数据
-    ) 
-
-def get_inspire_hand_ctrl():
-    return inspire_hand_ctrl(
-        pos_set=[0 for _ in range(6)],        # 小拇指指端触觉数据
-        angle_set=[0 for _ in range(6)],       # 小拇指指尖触觉数据
-        force_set=[0 for _ in range(6)],      # 小拇指指腹触觉数据
-        speed_set=[0 for _ in range(6)],        # 无名指指端触觉数据
-        mode=0b0000
+    return SimpleNamespace(
+        pos_act=[0]*6,
+        angle_act=[0]*6,
+        force_act=[0]*6,
+        current=[0]*6,
+        err=[0]*6,
+        status=[0]*6,
+        temperature=[0]*6,
     ) 
 
 defaut_ip='192.168.11.210'

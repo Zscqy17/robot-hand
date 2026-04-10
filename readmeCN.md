@@ -119,4 +119,8 @@ cd ..
 senseglove_integration/start_haptic_bridge_sim.bat
 ```
 
+真机联调操作清单：
+
+- [senseglove_integration/REAL_DEVICE_CHECKLIST_CN.md](senseglove_integration/REAL_DEVICE_CHECKLIST_CN.md)
+
 ---
